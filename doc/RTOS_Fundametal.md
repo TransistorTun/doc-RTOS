@@ -24,7 +24,9 @@ Scheduler là một phần của Kernel chịu trách nhiệm quyết định t�
 Chính sách scheduling là thuật toán được scheduler sử dụng để quyết định xem Task nào sẽ được thực hiện ở thời điểm nào. Chính sách của non-realtime sẽ cho phép mỗi task có tỷ lệ công bằng về thời gian của bộ xử lý.
 
 Ngoài việc bị Kernel Suspend một cách không tự nguyện thì một Task còn có thể tự Suspend. Nó sẽ thực hiện điều này nếu nó muốn delay (sleep) trong một khoảng thời gian cố định, hoặc chờ để tài nguyên sẵn sàng hoặc một sự kiện xảy ra. Các tác vụ bị chặn hoặc đang ngủ không thể thực thi và sẽ không được phân bố thời gian xử lý.
+
 ![Alt text](image-2.png)
+
 * Tại (1) thì Task1 đang thực thi
 * Tại (2) thì Kernel sẽ Suspend Task1
 * Tại (3) thì Task2 Resume
