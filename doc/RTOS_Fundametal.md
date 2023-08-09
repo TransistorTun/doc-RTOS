@@ -41,5 +41,14 @@ Khi mà một Task thực thi nó sử dụng bộ xử lý / các thanh ghi c�
 
 ![Alt text](image-3.png)
 
+Một task là sự tuần tự của các dòng code - nó không biết khi nào nó bị Suspend (Swapped out hoặc là Switched out) hoặc là Resume (Swapped in hoặc là Switched in) bởi Kernel và thậm chí cũng không biết khi nào việc này xảy ra.
+
+*Ví dụ:* Một Task bị Suspend ngay lập tức trước khi thực thi một lệnh tính tổng của 2 thanh ghi trong bộ xử lý. Khi mà task này bị Suspend thì các task khác sẽ hoạt động mà có thể thay đổi giá trị của các thanh ghi. Khi tiếp tục lại thì task không biết rằng các thanh ghi đã bị thay đổi và nếu nó sử dụng các thanh ghi đó thì phép cộng 2 thanh ghi sẽ cho kết quả không chính xác.
+
+Để ngăn chặn lỗi sai này xảy ra thì điều cần thiết khi tiếp tục lại task là, task đó phải có ngữ cảnh giống với ngữ cảnh ngay trước khi tạm dừng. Kernel có trách nhiệm đảm bảo việc đó và cũng như là lưu lại ngữ cảnh của task khi Suspend. Khi mà task được tiếp tục lại thì ngữ cảnh đã được lưu sẽ được lấy ra bởi Kernel trước khi thực thi. 
+
+***Quá trình lưu ngữ cảnh của một task đang bị Suspend và khôi phục ngữ cảnh của một tác vụ đang được tiếp tục gọi là chuyển đổi ngữ cảnh***    
+**CONTEXT SWITCHING**
+
 
 
