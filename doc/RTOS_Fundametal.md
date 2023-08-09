@@ -50,7 +50,15 @@ Một task là sự tuần tự của các dòng code - nó không biết khi n�
 Để ngăn chặn lỗi sai này xảy ra thì điều cần thiết khi tiếp tục lại task là, task đó phải có ngữ cảnh giống với ngữ cảnh ngay trước khi tạm dừng. Kernel có trách nhiệm đảm bảo việc đó và cũng như là lưu lại ngữ cảnh của task khi Suspend. Khi mà task được tiếp tục lại thì ngữ cảnh đã được lưu sẽ được lấy ra bởi Kernel trước khi thực thi. 
 
 ***Quá trình lưu ngữ cảnh của một task đang bị Suspend và khôi phục ngữ cảnh của một tác vụ đang được tiếp tục gọi là chuyển đổi ngữ cảnh***    
-**CONTEXT SWITCHING**
+**ĐÓ LÀ CONTEXT SWITCHING**
+
+
+## Real Time Applications
+
+Hệ điều hành real time đạt được đa nhiệm bằng cách sử dụng các nguyên tắc đó - nhưng mục tiêu của chúng rất khác so với các hệ thống non real time. Mục tiêu khác nhau thể hiện trong việc scheduling. Các hệ thống real time / hệ thống nhúng được thiết kế để cung cấp phản hồi kịp thời cho các sự kiện xảy ra trong thế giới thực.
+Một sự kiện xảy ra ở thế giới thực thì cần một thời gian đáp ứng kịp lúc mà các hệ thống thời gian thực phải đáp ứng, RTOS scheduling phải đảm bảo thời gian đó được đáp ứng
+
+Để đạt được mục tiêu thì đầu tiên các kĩ sư phần mềm phải sắp xếp thứ tự ưu tiên cho mỗi task. RTOS Scheduling sau đó đơn giản chỉ là đảm bảo rằng các task có mức ưu tiên cao nhất có thể thực thi là các task được cung cấp thời gian để xử lý. Điều này yêu cầu sự phân chia một cách "công bằng" thời gian của hệ thống giữa các task có cùng mức độ ưu tiên với nhau nếu chúng sẵn sàng chạy đồng thời.
 
 
 
