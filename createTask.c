@@ -4,11 +4,10 @@
 #include "driver/gpio.h"
 #include "esp_log.h"
 
-void app main ()
+void app_main ()
 {
     xTaskCreate(task_LED1, "task1", 1024*2, NULL, 3, NULL);
     xTaskCreate(task_LED2, "task2", 1024*2, NULL, 3, NULL);
-
 }
 
 //task1
@@ -21,7 +20,6 @@ void task_LED1 (void *param)
 
     }
     vTaskDelete(NULL);
-    
 }
 
 
