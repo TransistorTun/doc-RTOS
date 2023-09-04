@@ -1,6 +1,6 @@
 # SOFTWARE TIMER
 
-## Timer Service/Daemon Task and The Timer Command Queue
+## I. Timer Service/Daemon Task and The Timer Command Queue
 
 Chức năng Timer là tùy chọn và không phải là một phần của FREERTOS. Timer thường được tạo ra bởi các task Timer Service ( daemon ).
 
@@ -12,7 +12,7 @@ Nhìn vào sơ đồ bên dưới. Đoạn code ở bên trái là một chươn
 
 ![Alt text](image-13.png)
 
-## Timer Daemon Configuration
+## II. Timer Daemon Configuration
 
 Cách để cấu hình để có thể sử dụng software timers
 
@@ -42,15 +42,106 @@ Ví dụ:
 * Thực hiện nhiều lệnh gọi các API từ một task có mức độ ưu tiên cao hơn Timer Service Task.
 
 
-## One-shot timers vs Auto-reload timers
+## III. Thuộc tính và trạng thái của Software Timer
 
+
+### One-shot and Auto-reload Timers
 Có 2 loại timer đó là One-shot timers và Auto-reload timers 
 * One-shot timers: Nó chỉ callback duy nhất một lần, khi thực hiện xong thì sẽ không chạy lại lần nữa. Chúng ta vẫn có thể khởi động lại timer bằng cách thủ công chứ nó không thể tự khởi động lại.
 * Auto-reload: Sau khi khởi động, tỉmer sẽ tự động reload sau mỗi lần được callback, điều này tạo ra sự định kì lặp đi lặp lại.
 
 Sự khác nhau về cách hoạt động của One-shot timers và Auto-reload timers được biểu hiện ở hình dưới. Trong hình, Timer 1 là One-shot tỉmer có chu kì là 100, và Timer 2 là Auto-reload timer với chu kì là 200.
 
-![Alt text](image-14.png)
+![Alt text](image-16.png)
+
+* Timer 1: One-shot timer với chu kì là 6 ticks. Nó được bắt đầu ở t1 nên sau 6 ticks thì nó sẽ được call back ở t7. Vì là One-shot timer nên callback function của nó không thực hiện lại.
+* Timer 2: Auto-reload timer với chu kì là 5 ticks. Nó được bắt đầu ở t1 nên sau 5 ticks thì callback function sẽ được gọi lại sau mỗi 5 ticks.
+
+### Trạng thái của Software Timer 
+Software timer có thể chia làm 2 trạng thái: 
+* Dormant (ngủ đông): Software timer tồn tại và có thể tham chiếu bằng handle của nó nhưng nó không chạy do đó các callback function của nó sẽ không thực thi
+* Running: Software timer đang trong trạng thái Running sẽ thực thi callback function của nó sau một khoảng thời gian của nó kể từ khi Software Timer chuyển sang trạng thái Running hoặc kể từ khi Software Timer được Reset.
+
+![Alt text](image-17.png)
+
+![Alt text](image-18.png)
+
+Hình 39 và hình 40 cho chúng ta thấy cách chuyển đổi giữa các trạng thái Dormant vs Running cho One-shot timer mà auto-reload timer tương ứng. Khi chúng ta tạo một Task thì ngay lập tức task đó vào trạng thái Dormant. Và cách để đưa nó vào từng trạng thái thì ta có thể nhìn hình.
+
+## IV. Daemon Task Scheduling
+Daemon Task được schedule giống như mọi task khác; chúng sẽ chỉ xử lý các lệnh hoặc thực thi timer callback functions. Khi đó task có mức ưu tiên cao nhất sẽ được chạy. 
+
+
+**Ví dụ 1**
+![Alt text](image-19.png)
+
+Hình 42 là hình thể hiện việc các task chạy khi mà Daemon Task có mức độ ưu tiên thấp hơn mức độ ưu tiên của task gọi hàm API xTimerStart().
+Nhìn hình 42, trong đó mức độ ưu tiên của Task 1 lớn hơn mức độ ưu tiên của Daemon Task và mức độ ưu tiên của Ilde Task là thấp nhất.
+1. Tại t1: 
+* Task 1 đang trong trạng thái Running còn Daemon Task đang trong trạng thái Block.
+
+*  Daemon Task sẽ thoát khỏi trạng thái Block nếu một lệnh được gửi đến timer command queue, trong trường hợp đó nó sẽ xử lý lệnh đó. Hoặc nếu software timer hết hạn thì nó sẽ thực hiện callback function của software timer.
+
+2. Tại t2: 
+* Task 1 call xTimerStart().
+* xTimerStart() gửi một lệnh cho timer commmand queue làm cho Daemon Task thoát khỏi trạng thái Block. Mức độ ưu tiên của Task 1 cao hơn mức độ ưu tiên của Daemon Task vì vậy Daemon Task không được thực hiện trước Task 1.
+* Task 1 vẫn ở trạng thái Running còn Daemon Task đã thoát khỏi trạng thái Block và nằm trong trạng thái Ready.
+
+3. Tại t3:
+*  Task 1 hoàn thành việc thực thi hàm API xTimerStart() từ đầu đến cuối mà không thoát khỏi trạng thái Running.
+
+4. Tại t4:
+* Task 1 call API đưa nó vào trạng thái Block. Lúc này Daemon Task là task có mức độ ưu tiên cao nhất trong hàng Ready, do đó Scheduler đưa Daemon Task vào trạng thái Running. Daemon Task lúc này bắt đầu xử lý lệnh mà Task 1 gửi vào timer command queue.
+
+* **Lưu ý: Thời gian mà software timer đang được khởi động sẽ hết hạn được tính từ: thời điểm lệnh "start a timer" được gửi đến timer command queue - nó không được tính từ thời điểm tác vụ daemon nhận được lệnh "start a timer" từ timer command queue.**
+
+5. Tại t5:
+* Daemon Task đã hoàn tất việc xử lý lệnh do Task 1 gửi tới nó và cố gắng nhận thêm dữ liệu từ timer command queue. Timer command queue lúc này trống, do đó Daemon Task sẽ chuyển sang trạng thái Block. Daemon Task sẽ lại thoát khỏi trạng thái Block nếu lệnh gửi đến timer command queue, hoặc software timer hết hạn. 
+* Idle Task lúc này là task có mức độ ưu tiên cao nhất trong những task đang Ready, do đó scheduler kéo Idle Task vào trạng thái Running.
+
+**Ví dụ 2**
+
+![Alt text](image-20.png)
+
+Nhìn hình 43, trong đó mức độ ưu tiên của Task 1 nhỏ hơn mức độ ưu tiên của Daemon Task và mức độ ưu tiên của Ilde Task là thấp nhất.
+
+1. Tại t1:
+* Trước đó, Task 1 đang trong trạng thái Running còn, Daemon Task thì đang nằm trong trạng thái Block
+
+2. Tại t2: 
+* Task 1 calls xTimerStart(). 
+* xTimerStart() gửi lệnh vào timer command queue để đưa Daemon Task ra khỏi trạng thái bị Block. Mức độ ưu tiên của Daemon Task lớn hơn mức độ ưu tiên của Task 1 cho nên scheduler đưa Daemon Task vào trạng thái Running. Trong khi đó, Task 1 đã bị Daemon Task chiếm quyền thực thi khi mà chưa hoàn thành việc thực thi hàm xTimerStart() và đang được đưa vào Ready.
+* Daemon Task lúc này bắt đầu xử lý lệnh mà Task 1 gửi vào timer command queue.
+
+3. Tại t3:
+* Daemon Task đã hoàn tất việc xử lý lệnh do Task 1 gửi tới nó và cố gắng nhận thêm dữ liệu từ timer command queue. Timer command queue lúc này trống, do đó Daemon Task sẽ chuyển sang trạng thái Block. Daemon Task sẽ lại thoát khỏi trạng thái Block nếu lệnh gửi đến timer command queue, hoặc software timer hết hạn. 
+
+4. Tại t4 và t5: tương tự như ở vd1.
+
+## V. Creating and Starting a Software Timer
+
+**xTimeCreate()**
+
+## VI. Thay đổi chu kì của Timer
+
+Muốn thay đổi chu kì của software timer thì ta sử dụng chương trình xTimerChangePeriod().
+* *Nếu xTimerChangePeriod() được sử dụng để thay đổi chu kì của timer đang chạy thì bộ timer sẽ sử dụng giá trị chu kì mới để tính toán lại thời gian hết hạn. Thời gian hết hạn được tính toán lại dựa theo thời điểm xTimerChangePeriod() được gọi, không liên quan đến lúc mà timer khởi chạy.*
+* *Nếu xTimerChangePeriod() được dùng để thay đổi chu kì của timer đang trong trạng thái Dormant thì timer sẽ tính toán lại thời gian hết hạn và chuyển sang trạng thái Running.*
+
+**Lưu ý: Không bao giờ gọi hàm xTimerChangePeriod() từ ngắt, thay vào đó ta nên sử dụng xTimerChangePeriodFromISR()**
+
+![Alt text](image-21.png)
+
+| Param/ Returned Value | Description |
+| :-------------------: | :--------- |
+| xTimer | Là một biến/địa chỉ giúp ta handle được giá trị chu kì mới mà ta muốn thêm vào. Biến/địa chỉ này được trả về từ việc chúng ta xTimerCreate() tạo một software timer |
+| xTimerPeriodInTicks | Chu kì mới của software timer, được xác định bằng các ticks. Macro pdMS_TO_TICKS() có thể được dùng để chuyển đổi thời gian từ milliseconds về ticks. |
+| xTicksToWait | xTimerChangePeriod() sử dụng timer command queue để gửi yêu cầu "thay đổi chu kì" đến Daemon Task. xTicksToWait chỉ định lượng thời gian tối đa mà Task được gọi sẽ duy trì ở trạng thái Bị chặn để chờ có chỗ trống trên timer command queue, nếu hàng đợi đã đầy. |
+|| xTimerChangePeriod() sẽ trả về ngay lập tức nếu xTicksToWait bằng 0 và hàng đợi lệnh hẹn giờ đã đầy. |
+|| Nếu INCLUDE_vTaskSuspend được đặt thành 1 trong FreeRTOSConfig.h thì việc đặt xTicksToWait thành portMAX_DELAY sẽ dẫn đến Task gọi vẫn ở trạng thái Block vô thời hạn (không có thời gian chờ) đến khi có chỗ trống trên timer command queue. |
+|| Nếu xTimerChangePeriod() được gọi trước khi scheduler bắt đầu, thì không cần chú ý đến giá trị của xTicksToWait, và xTimerChangePeriod() hoạt động như thể xTicksToWait đã được đặt thành 0. |
+| Returned Valued | 1. **pdPASS**: giá trị này sẽ được trả về nếu dữ liệu được gửi thành công đến timer command queue. 
+
 
 ## Resetting a software timer
 
