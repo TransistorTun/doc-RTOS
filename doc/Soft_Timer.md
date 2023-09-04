@@ -140,7 +140,8 @@ Muốn thay đổi chu kì của software timer thì ta sử dụng chương tr�
 || xTimerChangePeriod() sẽ trả về ngay lập tức nếu xTicksToWait bằng 0 và hàng đợi lệnh hẹn giờ đã đầy. |
 || Nếu INCLUDE_vTaskSuspend được đặt thành 1 trong FreeRTOSConfig.h thì việc đặt xTicksToWait thành portMAX_DELAY sẽ dẫn đến Task gọi vẫn ở trạng thái Block vô thời hạn (không có thời gian chờ) đến khi có chỗ trống trên timer command queue. |
 || Nếu xTimerChangePeriod() được gọi trước khi scheduler bắt đầu, thì không cần chú ý đến giá trị của xTicksToWait, và xTimerChangePeriod() hoạt động như thể xTicksToWait đã được đặt thành 0. |
-| Returned Valued | 1. **pdPASS**: giá trị này sẽ được trả về nếu dữ liệu được gửi thành công đến timer command queue. 
+| Returned Valued | 1. **pdPASS**: giá trị này sẽ được trả về nếu dữ liệu được gửi thành công đến timer command queue. Nếu thời gian block được xác định (xTicksToWait không bằng 0), thì Task được gọi sẽ bị đưa vào trạng thái Block và đợi đến khi có chỗ trống trong timer command queue trước khi hàm return, nhưng dữ liệu đã được ghi thành công vào timer command queue trước khi thời gian chặn hết hạn. |
+|| 2. **pdFALSE**: giá trị pdFALSE sẽ được trả về nếu lệnh "change period" không thể được đưa vào timer command queue bởi vì nó đã đầy trước đó. Nếu thời gian block được xác định (xTicksToWait không bằng 0), thì Task đang được gọi sẽ bị đưa vào trạng thái Block và đợi cho Daemon Task tạo thêm vùng trống trong queue, nhưng thời gian block được chỉ định hết hạn trước khi điều đó xảy ra. 
 
 
 ## Resetting a software timer
